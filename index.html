@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Baby Feeding Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .main-content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .voice-section {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-left: 5px solid #ff6b6b;
+        }
+
+        .voice-section h2 {
+            color: white;
+        }
+
+        .voice-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 3em;
+        }
+
+        .voice-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .voice-button.listening {
+            background: #ff6b6b;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .voice-status {
+            font-size: 1.2em;
+            margin: 15px 0;
+            min-height: 30px;
+        }
+
+        .voice-transcript {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-style: italic;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-help {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        .voice-help h3 {
+            margin-bottom: 10px;
+        }
+
+        .voice-help ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .voice-help li {
+            margin: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .voice-help li:before {
+            content: "🎤";
+            position: absolute;
+            left: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .dashboard {
+            grid-column: span 2;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-top: 4px solid #667eea;
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-card .unit {
+            font-size: 0.8em;
+            color: #666;
+            margin-left: 5px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .feeding-log {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .feeding-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s ease;
+        }
+
+        .feeding-entry:hover {
+            background: #f8f9fa;
+        }
+
+        .feeding-entry:last-child {
+            border-bottom: none;
+        }
+
+        .feeding-time {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .feeding-amount {
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .feeding-type {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .feeding-type.formula {
+            background: #feca57;
+        }
+
+        .delete-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .delete-btn:hover {
+            background: #ff5252;
+        }
+
+        .error-message {
+            background: #ff6b6b;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .success-message {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .dashboard {
+                grid-column: span 1;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Voice Baby Feeding Tracker</h1>
+            <p>Track your baby's feeding schedule with voice commands</p>
+        </div>
+
+        <div class="main-content">
+            <div class="section voice-section">
+                <h2>🎙️ Voice Input</h2>
+                <div class="voice-button" id="voiceButton">🎤</div>
+                <div class="voice-status" id="voiceStatus">Click microphone to start</div>
+                <div class="voice-transcript" id="voiceTranscript">Your voice commands will appear here...</div>
+                
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage"></div>
+                
+                <div class="voice-help">
+                    <h3>Voice Commands:</h3>
+                    <ul>
+                        <li>"Add 120ml breast milk" or "120 breast"</li>
+                        <li>"Add 100ml formula" or "100 formula"</li>
+                        <li>"Baby had 150 milliliters breast milk"</li>
+                        <li>"Fed 80ml formula at 2pm"</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📝 Manual Entry</h2>
+                <form id="feedingForm">
+                    <div class="form-group">
+                        <label for="amount">Amount (ml):</label>
+                        <input type="number" id="amount" min="1" max="500" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="type">Milk Type:</label>
+                        <select id="type" required>
+                            <option value="">Select type</option>
+                            <option value="breast">Breast Milk</option>
+                            <option value="formula">Formula</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="time">Time:</label>
+                        <input type="datetime-local" id="time" required>
+                    </div>
+                    
+                    <button type="submit" class="btn">Add Feeding</button>
+                </form>
+            </div>
+
+            <div class="section">
+                <h2>📊 Today's Summary</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Today</h3>
+                        <div class="value" id="totalToday">0<span class="unit">ml</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Breast Milk</h3>
+                        <div class="value" id="breastToday">0<span class="unit">ml</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Formula</h3>
+                        <div class="value" id="formulaToday">0<span class="unit">ml</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Feedings</h3>
+                        <div class="value" id="feedingsToday">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard">
+                <h2>📈 2-Week Feeding Trend</h2>
+                <div class="chart-container">
+                    <canvas id="feedingChart"></canvas>
+                </div>
+                
+                <h2>📋 Recent Feedings</h2>
+                <div class="feeding-log" id="feedingLog">
+                    <p style="text-align: center; color: #666; padding: 20px;">No feedings recorded yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class VoiceFeedingTracker {
+            constructor() {
+                this.feedings = this.loadFeedings();
+                this.cleanOldData();
+                this.initForm();
+                this.initVoice();
+                this.updateDashboard();
+                this.initChart();
+            }
+
+            // Voice Recognition Setup
+            initVoice() {
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    document.getElementById('voiceStatus').textContent = 'Speech recognition not supported in this browser';
+                    document.getElementById('voiceButton').style.display = 'none';
+                    return;
+                }
+
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                this.recognition = new SpeechRecognition();
+                
+                this.recognition.continuous = false;
+                this.recognition.interimResults = false;
+                this.recognition.lang = 'en-US';
+
+                this.recognition.onstart = () => {
+                    document.getElementById('voiceStatus').textContent = 'Listening...';
+                    document.getElementById('voiceButton').classList.add('listening');
+                    document.getElementById('voiceTranscript').textContent = 'Speak now...';
+                };
+
+                this.recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('voiceTranscript').textContent = transcript;
+                    this.processVoiceCommand(transcript);
+                };
+
+                this.recognition.onerror = (event) => {
+                    this.showError(`Voice recognition error: ${event.error}`);
+                    this.resetVoiceUI();
+                };
+
+                this.recognition.onend = () => {
+                    this.resetVoiceUI();
+                };
+
+                document.getElementById('voiceButton').addEventListener('click', () => {
+                    this.startListening();
+                });
+            }
+
+            startListening() {
+                if (this.recognition) {
+                    this.recognition.start();
+                }
+            }
+
+            resetVoiceUI() {
+                document.getElementById('voiceStatus').textContent = 'Click microphone to start';
+                document.getElementById('voiceButton').classList.remove('listening');
+            }
+
+            processVoiceCommand(transcript) {
+                const command = transcript.toLowerCase();
+                
+                // Extract amount (numbers)
+                const amountMatch = command.match(/(\d+)\s*(ml|milliliters?)?/i);
+                if (!amountMatch) {
+                    this.showError('Could not understand the amount. Please say something like "120ml breast milk"');
+                    return;
+                }
+                
+                const amount = parseInt(amountMatch[1]);
+                
+                // Extract type (breast milk or formula)
+                let type = '';
+                if (command.includes('breast')) {
+                    type = 'breast';
+                } else if (command.includes('formula')) {
+                    type = 'formula';
+                } else {
+                    this.showError('Could not understand milk type. Please say "breast milk" or "formula"');
+                    return;
+                }
+                
+                // Extract time (optional)
+                let feedingTime = new Date();
+                const timeMatch = command.match(/at\s+(\d{1,2})\s*(pm|am)/i);
+                if (timeMatch) {
+                    let hour = parseInt(timeMatch[1]);
+                    const isPM = timeMatch[2].toLowerCase() === 'pm';
+                    
+                    if (isPM && hour !== 12) hour += 12;
+                    if (!isPM && hour === 12) hour = 0;
+                    
+                    feedingTime.setHours(hour, 0, 0, 0);
+                }
+                
+                // Add the feeding
+                this.addFeedingFromVoice(amount, type, feedingTime);
+            }
+
+            addFeedingFromVoice(amount, type, time) {
+                const feeding = {
+                    id: Date.now(),
+                    amount,
+                    type,
+                    time: time.toISOString()
+                };
+
+                this.feedings.push(feeding);
+                this.feedings.sort((a, b) => new Date(b.time) - new Date(a.time));
+                this.saveFeedings();
+                this.updateDashboard();
+                this.updateChart();
+                
+                const typeLabel = type === 'breast' ? 'breast milk' : 'formula';
+                this.showSuccess(`Added ${amount}ml ${typeLabel} at ${time.toLocaleTimeString()}`);
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            }
+
+            showSuccess(message) {
+                const successDiv = document.getElementById('successMessage');
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 3000);
+            }
+
+            // Original feeding tracker methods
+            loadFeedings() {
+                try {
+                    const feedings = [];
+                    for (let i = 0; i < 1000; i++) {
+                        const key = `feeding_${i}`;
+                        const feeding = localStorage.getItem(key);
+                        if (feeding) {
+                            feedings.push(JSON.parse(feeding));
+                        }
+                    }
+                    return feedings;
+                } catch (error) {
+                    return [];
+                }
+            }
+
+            saveFeedings() {
+                try {
+                    // Clear existing entries
+                    for (let i = 0; i < 1000; i++) {
+                        localStorage.removeItem(`feeding_${i}`);
+                    }
+                    
+                    // Save new entries
+                    this.feedings.forEach((feeding, index) => {
+                        localStorage.setItem(`feeding_${index}`, JSON.stringify(feeding));
+                    });
+                } catch (error) {
+                    console.error('Error saving feedings:', error);
+                }
+            }
+
+            cleanOldData() {
+                const twoWeeksAgo = new Date();
+                twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+                
+                this.feedings = this.feedings.filter(feeding => 
+                    new Date(feeding.time) >= twoWeeksAgo
+                );
+                this.saveFeedings();
+            }
+
+            initForm() {
+                const form = document.getElementById('feedingForm');
+                const timeInput = document.getElementById('time');
+                
+                // Set default time to now
+                const now = new Date();
+                const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+                timeInput.value = localTime.toISOString().slice(0, 16);
+                
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addFeeding();
+                });
+            }
+
+            addFeeding() {
+                const amount = parseInt(document.getElementById('amount').value);
+                const type = document.getElementById('type').value;
+                const time = document.getElementById('time').value;
+
+                if (!amount || !type || !time) {
+                    this.showError('Please fill in all fields');
+                    return;
+                }
+
+                const feeding = {
+                    id: Date.now(),
+                    amount,
+                    type,
+                    time: new Date(time).toISOString()
+                };
+
+                this.feedings.push(feeding);
+                this.feedings.sort((a, b) => new Date(b.time) - new Date(a.time));
+                this.saveFeedings();
+                this.updateDashboard();
+                this.updateChart();
+                
+                // Reset form
+                document.getElementById('amount').value = '';
+                document.getElementById('type').value = '';
+                
+                // Set time to now for next entry
+                const now = new Date();
+                const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+                document.getElementById('time').value = localTime.toISOString().slice(0, 16);
+                
+                this.showSuccess('Feeding added successfully!');
+            }
+
+            deleteFeeding(id) {
+                this.feedings = this.feedings.filter(feeding => feeding.id !== id);
+                this.saveFeedings();
+                this.updateDashboard();
+                this.updateChart();
+            }
+
+            getTodayStats() {
+                const today = new Date().toDateString();
+                const todayFeedings = this.feedings.filter(feeding => 
+                    new Date(feeding.time).toDateString() === today
+                );
+
+                return {
+                    total: todayFeedings.reduce((sum, feeding) => sum + feeding.amount, 0),
+                    breast: todayFeedings.filter(f => f.type === 'breast').reduce((sum, feeding) => sum + feeding.amount, 0),
+                    formula: todayFeedings.filter(f => f.type === 'formula').reduce((sum, feeding) => sum + feeding.amount, 0),
+                    count: todayFeedings.length
+                };
+            }
+
+            updateDashboard() {
+                const stats = this.getTodayStats();
+                
+                document.getElementById('totalToday').innerHTML = `${stats.total}<span class="unit">ml</span>`;
+                document.getElementById('breastToday').innerHTML = `${stats.breast}<span class="unit">ml</span>`;
+                document.getElementById('formulaToday').innerHTML = `${stats.formula}<span class="unit">ml</span>`;
+                document.getElementById('feedingsToday').textContent = stats.count;
+                
+                this.updateFeedingLog();
+            }
+
+            updateFeedingLog() {
+                const log = document.getElementById('feedingLog');
+                const recentFeedings = this.feedings.slice(0, 40);
+                
+                if (recentFeedings.length === 0) {
+                    log.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No feedings recorded yet</p>';
+                    return;
+                }
+
+                log.innerHTML = recentFeedings.map(feeding => {
+                    const date = new Date(feeding.time);
+                    const timeStr = date.toLocaleString();
+                    const typeClass = feeding.type === 'formula' ? 'formula' : '';
+                    
+                    return `
+                        <div class="feeding-entry">
+                            <div class="feeding-time">${timeStr}</div>
+                            <div class="feeding-amount">${feeding.amount}ml</div>
+                            <div class="feeding-type ${typeClass}">${feeding.type === 'breast' ? 'Breast' : 'Formula'}</div>
+                            <button class="delete-btn" onclick="tracker.deleteFeeding(${feeding.id})">Delete</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            getDailyData() {
+                const dailyData = {};
+                
+                // Initialize last 14 days
+                for (let i = 13; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const dateStr = date.toDateString();
+                    dailyData[dateStr] = { breast: 0, formula: 0, total: 0 };
+                }
+                
+                // Aggregate feeding data
+                this.feedings.forEach(feeding => {
+                    const dateStr = new Date(feeding.time).toDateString();
+                    if (dailyData[dateStr]) {
+                        dailyData[dateStr][feeding.type] += feeding.amount;
+                        dailyData[dateStr].total += feeding.amount;
+                    }
+                });
+                
+                return dailyData;
+            }
+
+            initChart() {
+                const ctx = document.getElementById('feedingChart').getContext('2d');
+                const dailyData = this.getDailyData();
+                
+                const labels = Object.keys(dailyData).map(date => {
+                    const d = new Date(date);
+                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                });
+                
+                const breastData = Object.values(dailyData).map(day => day.breast);
+                const formulaData = Object.values(dailyData).map(day => day.formula);
+                
+                this.chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Breast Milk (ml)',
+                            data: breastData,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }, {
+                            label: 'Formula (ml)',
+                            data: formulaData,
+                            borderColor: '#feca57',
+                            backgroundColor: 'rgba(254, 202, 87, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Daily Feeding Amounts (Last 14 Days)'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Amount (ml)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            updateChart() {
+                if (!this.chart) return;
+                
+                const dailyData = this.getDailyData();
+                const breastData = Object.values(dailyData).map(day => day.breast);
+                const formulaData = Object.values(dailyData).map(day => day.formula);
+                
+                this.chart.data.datasets[0].data = breastData;
+                this.chart.data.datasets[1].data = formulaData;
+                this.chart.update();
+            }
+        }
+
+        // Initialize the tracker
+        const tracker = new VoiceFeedingTracker();
+    </script>
+</body>
+</html>
